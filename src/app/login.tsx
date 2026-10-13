@@ -4,6 +4,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -11,10 +12,17 @@ import { colors, radii, spacing } from '../theme';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const useDesktopImage = width >= 1200 || (width >= 768 && isLandscape);
 
   return (
     <ImageBackground
-      source={require('../../assets/images/telalogin.png')}
+      source={
+        useDesktopImage
+          ? require('../../assets/images/telalogindesktop.png')
+          : require('../../assets/images/telalogin.png')
+      }
       style={styles.background}
       resizeMode="cover"
     >
@@ -22,7 +30,10 @@ export default function LoginScreen() {
         <View style={styles.spacer} />
 
         <View style={styles.actions}>
-          <Pressable style={styles.createButton}>
+          <Pressable
+            style={styles.createButton}
+            onPress={() => router.push('/signup')}
+          >
             <Text style={styles.createButtonText}>Criar conta</Text>
           </Pressable>
 
