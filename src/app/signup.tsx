@@ -1,3 +1,4 @@
+import { FontAwesome, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -21,6 +22,8 @@ import {
 
 import { colors, radii, spacing } from '../theme';
 
+type AuthMethod = 'google' | 'apple' | 'email' | null;
+
 export default function SignupScreen() {
   const router = useRouter();
 
@@ -32,6 +35,8 @@ export default function SignupScreen() {
   });
 
   const [step, setStep] = useState(1);
+  const [authMethod, setAuthMethod] = useState<AuthMethod>(null);
+
   const [name, setName] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [email, setEmail] = useState('');
@@ -41,13 +46,30 @@ export default function SignupScreen() {
     return <View style={styles.screen} />;
   }
 
+  function chooseSocialMethod(method: 'google' | 'apple') {
+    setAuthMethod(method);
+    setStep(2);
+  }
+
+  function chooseEmailMethod() {
+    setAuthMethod('email');
+  }
+
+  function continueWithEmail() {
+    if (!email || !password) return;
+
+    setStep(2);
+  }
+
   function nextStep() {
-    if (step < 3) {
-      setStep(step + 1);
+    if (step === 2) {
+      setStep(3);
       return;
     }
 
-    router.push('/onboarding');
+    if (step === 3) {
+      router.push('/onboarding');
+    }
   }
 
   function previousStep() {
@@ -95,14 +117,122 @@ export default function SignupScreen() {
         {step === 1 && (
           <View style={styles.content}>
             <View>
-              <Text style={styles.kicker}>VAMOS COMEÇAR PELO BÁSICO</Text>
+              <Text style={styles.kicker}>BEM-VINDO AO CONECTAÍ</Text>
+
+              <Text style={styles.title}>
+                Como quer criar{'\n'}sua conta?
+              </Text>
+
+              <Text style={styles.subtitle}>
+                Escolha a forma mais simples para começar.
+                Depois você completa seu perfil com calma.
+              </Text>
+            </View>
+
+            <View style={styles.authArea}>
+              <Pressable
+                style={styles.socialButton}
+                onPress={() => chooseSocialMethod('apple')}
+              >
+                <View style={styles.iconBox}>
+                  <FontAwesome
+                    name="apple"
+                    size={23}
+                    color="#FFFFFF"
+                  />
+                </View>
+
+                <Text style={styles.socialButtonText}>
+                  Continuar com Apple
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.socialButton}
+                onPress={() => chooseSocialMethod('google')}
+              >
+                <View style={styles.iconBox}>
+                  <FontAwesome
+                    name="google"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+                </View>
+
+                <Text style={styles.socialButtonText}>
+                  Continuar com Google
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[
+                  styles.socialButton,
+                  authMethod === 'email' && styles.socialButtonSelected,
+                ]}
+                onPress={chooseEmailMethod}
+              >
+                <View style={styles.iconBox}>
+                  <MaterialCommunityIcons
+                    name="email-outline"
+                    size={22}
+                    color="#FFFFFF"
+                  />
+                </View>
+
+                <Text style={styles.socialButtonText}>
+                  Continuar com e-mail
+                </Text>
+              </Pressable>
+
+              {authMethod === 'email' && (
+                <View style={styles.emailArea}>
+                  <TextInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Seu e-mail"
+                    placeholderTextColor="#756881"
+                    style={styles.input}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                  />
+
+                  <TextInput
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Crie uma senha"
+                    placeholderTextColor="#756881"
+                    style={styles.input}
+                    secureTextEntry
+                  />
+
+                  <Pressable
+                    onPress={continueWithEmail}
+                    style={({ pressed }) => [
+                      styles.continueButton,
+                      pressed && styles.buttonPressed,
+                    ]}
+                  >
+                    <Text style={styles.continueText}>
+                      Continuar
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {step === 2 && (
+          <View style={styles.content}>
+            <View>
+              <Text style={styles.kicker}>AGORA VAMOS TE CONHECER</Text>
 
               <Text style={styles.title}>
                 Como podemos{'\n'}te chamar?
               </Text>
 
               <Text style={styles.subtitle}>
-                Seu perfil começa com o básico. O resto a gente descobre juntos.
+                Esse será o nome mostrado para suas futuras conexões.
               </Text>
             </View>
 
@@ -122,10 +252,10 @@ export default function SignupScreen() {
           </View>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <View style={styles.content}>
             <View>
-              <Text style={styles.kicker}>SÓ MAIS UM POUQUINHO</Text>
+              <Text style={styles.kicker}>QUASE LÁ</Text>
 
               <Text style={styles.title}>
                 Quando você{'\n'}nasceu?
@@ -151,99 +281,45 @@ export default function SignupScreen() {
 
               <View style={styles.infoCard}>
                 <Text style={styles.infoEmoji}>💜</Text>
+
                 <Text style={styles.infoText}>
-                  Sua idade ajuda a encontrar pessoas em fases de vida compatíveis.
+                  Sua idade também ajuda a encontrar pessoas em fases
+                  de vida compatíveis com a sua.
                 </Text>
               </View>
             </View>
           </View>
         )}
 
-        {step === 3 && (
-          <View style={styles.content}>
-            <View>
-              <Text style={styles.kicker}>ÚLTIMO PASSO</Text>
-
-              <Text style={styles.title}>
-                Como quer entrar{'\n'}no Conectaí?
+        {step > 1 && (
+          <View style={styles.bottom}>
+            <Pressable
+              onPress={nextStep}
+              style={({ pressed }) => [
+                styles.continueButton,
+                pressed && styles.buttonPressed,
+              ]}
+            >
+              <Text style={styles.continueText}>
+                {step === 3 ? 'Continuar para meus interesses' : 'Continuar'}
               </Text>
-
-              <Text style={styles.subtitle}>
-                Escolha a forma mais simples para criar sua conta.
-              </Text>
-            </View>
-
-            <View style={styles.formArea}>
-              <Pressable style={styles.socialButton}>
-                <Text style={styles.socialButtonText}>
-                  Continuar com Apple
-                </Text>
-              </Pressable>
-
-              <Pressable style={styles.socialButton}>
-                <Text style={styles.socialButtonText}>
-                  Continuar com Google
-                </Text>
-              </Pressable>
-
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>ou use seu e-mail</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <TextInput
-                value={email}
-                onChangeText={setEmail}
-                placeholder="E-mail"
-                placeholderTextColor="#756881"
-                style={styles.input}
-                autoCapitalize="none"
-                keyboardType="email-address"
-              />
-
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Crie uma senha"
-                placeholderTextColor="#756881"
-                style={styles.input}
-                secureTextEntry
-              />
-            </View>
+            </Pressable>
           </View>
         )}
 
-        <View style={styles.bottom}>
-          <Pressable
-            onPress={nextStep}
-            style={({ pressed }) => [
-              styles.continueButton,
-              pressed && styles.buttonPressed,
-            ]}
-          >
-            <Text style={styles.continueText}>
-              {step === 3 ? 'Criar minha conta' : 'Continuar'}
+        {step === 1 && (
+          <View style={styles.loginRow}>
+            <Text style={styles.loginQuestion}>
+              Já tem uma conta?{' '}
             </Text>
-          </Pressable>
 
-          {step === 1 && (
-            <View style={styles.loginRow}>
-              <Text style={styles.loginQuestion}>Já tem uma conta? </Text>
-
-              <Pressable onPress={() => router.replace('/login')}>
-                <Text style={styles.loginLink}>Entrar</Text>
-              </Pressable>
-            </View>
-          )}
-
-          {step === 3 && (
-            <Text style={styles.terms}>
-              Ao continuar, você concorda com os Termos de Uso e a Política de
-              Privacidade do Conectaí.
-            </Text>
-          )}
-        </View>
+            <Pressable onPress={() => router.replace('/login')}>
+              <Text style={styles.loginLink}>
+                Entrar
+              </Text>
+            </Pressable>
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -361,9 +437,51 @@ const styles = StyleSheet.create({
     maxWidth: 410,
   },
 
+  authArea: {
+    gap: 13,
+    marginTop: 42,
+  },
+
   formArea: {
     gap: 13,
     marginTop: 46,
+  },
+
+  socialButton: {
+    height: 60,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: '#3B284A',
+    backgroundColor: '#1A1025',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+  },
+
+  socialButtonSelected: {
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(149, 106, 250, 0.10)',
+  },
+
+  iconBox: {
+    width: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+
+  socialButtonText: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 15,
+    textAlign: 'center',
+    marginRight: 44,
+  },
+
+  emailArea: {
+    gap: 12,
+    marginTop: 8,
   },
 
   label: {
@@ -408,41 +526,6 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
 
-  socialButton: {
-    height: 58,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: '#3B284A',
-    backgroundColor: '#1A1025',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  socialButtonText: {
-    color: '#FFFFFF',
-    fontFamily: 'Poppins_500Medium',
-    fontSize: 15,
-  },
-
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginVertical: 8,
-  },
-
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#2D2038',
-  },
-
-  dividerText: {
-    color: '#746A7D',
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 11,
-  },
-
   bottom: {
     marginTop: 46,
   },
@@ -469,7 +552,7 @@ const styles = StyleSheet.create({
   loginRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: 34,
   },
 
   loginQuestion: {
@@ -482,15 +565,5 @@ const styles = StyleSheet.create({
     color: colors.primaryLight,
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 13,
-  },
-
-  terms: {
-    color: '#716679',
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 10,
-    lineHeight: 17,
-    textAlign: 'center',
-    marginTop: 16,
-    paddingHorizontal: 12,
   },
 });
