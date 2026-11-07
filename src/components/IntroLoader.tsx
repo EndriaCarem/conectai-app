@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
+
 import {
   Poppins_500Medium,
   useFonts,
@@ -26,7 +27,7 @@ export function IntroLoader({ onFinished }: IntroLoaderProps) {
     Poppins_500Medium,
   });
 
-  const translateY = useRef(new Animated.Value(0)).current;
+  const translateY = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
     if (!fontsLoaded) return;
