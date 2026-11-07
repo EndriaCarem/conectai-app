@@ -1,24 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
-
-import { colors } from '../theme';
+// Mantém links antigos funcionando: a Home temporária virou a tela Descobrir.
+import { Redirect } from 'expo-router';
 
 export default function HomeScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Home temporária</Text>
-    </View>
-  );
+  return <Redirect href="/descobrir" />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  text: {
-    color: colors.textPrimary,
-  },
-});

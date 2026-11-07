@@ -173,8 +173,7 @@ export default function OnboardingScreen() {
     // profiles, user_interests e user_preference_rules com sessão real.
     console.log('[onboarding] rascunho (backend pendente):', data);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    // Rota temporária: a Home ainda é esqueleto até a fatia de sessão/descoberta.
-    router.replace('/home');
+    router.replace('/descobrir');
   }
 
   function renderStep() {

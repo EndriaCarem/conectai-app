@@ -1,9 +1,11 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function RootLayout() {
   return (
-    <>
+    // Obrigatório para os gestos do SwipeDeck (react-native-gesture-handler).
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
 
       <Stack
@@ -11,6 +13,6 @@ export default function RootLayout() {
           headerShown: false,
         }}
       />
-    </>
+    </GestureHandlerRootView>
   );
 }
