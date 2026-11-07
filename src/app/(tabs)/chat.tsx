@@ -1,35 +1,35 @@
-// Chat (ref 5) — lista de conversas com busca e não lidas.
-// TODO(backend): tabelas `chats`/`chat_members`/`messages` com RLS + realtime.
+// Chat (ref 5 adaptada) — SÓ grupos de evento. Não existem conversas individuais:
+// todo grupo nasce de um evento criado ou confirmado por você.
+// TODO(backend): lista vinda de `chats` + `chat_members`, realtime das mensagens.
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { mockConversations } from '../../data/chats';
+import { mockGroups } from '../../data/groups';
 import { colors, radii, spacing } from '../../theme';
 
 export default function ChatScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [query, setQuery] = useState('');
 
-  const filtered = mockConversations.filter((chat) =>
-    chat.name.toLowerCase().includes(query.trim().toLowerCase()),
+  const filtered = mockGroups.filter((group) =>
+    group.name.toLowerCase().includes(query.trim().toLowerCase()),
   );
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 10 }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Chat</Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Nova conversa"
-          style={styles.newButton}
-        >
-          <Ionicons name="create-outline" size={20} color={colors.primary} />
-        </Pressable>
+        <View style={styles.groupsPill}>
+          <Ionicons name="people" size={13} color={colors.primary} />
+          <Text style={styles.groupsPillText}>só grupos</Text>
+        </View>
       </View>
 
       <View style={styles.search}>
@@ -37,7 +37,7 @@ export default function ChatScreen() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Buscar conversas…"
+          placeholder="Buscar grupos…"
           placeholderTextColor="#756881"
           autoCapitalize="none"
           style={styles.searchInput}
@@ -49,54 +49,61 @@ export default function ChatScreen() {
         )}
       </View>
 
+      <Text style={styles.hint}>
+        Seus grupos nascem dos eventos que você cria ou confirma.
+      </Text>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.list}
       >
         {filtered.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>💬</Text>
-            <Text style={styles.emptyTitle}>Nenhuma conversa por aqui</Text>
+            <Text style={styles.emptyEmoji}>🎉</Text>
+            <Text style={styles.emptyTitle}>Nenhum grupo por aqui</Text>
             <Text style={styles.emptyText}>
-              Conecte-se com alguém no Descobrir para começar a puxar assunto.
+              Confirme presença em um evento na aba Eventos e o grupo de conversa é
+              criado automaticamente.
             </Text>
           </View>
         ) : (
-          filtered.map((chat, index) => (
+          filtered.map((group, index) => (
             <Animated.View
-              key={chat.id}
+              key={group.id}
               entering={FadeInUp.delay(70 * index).duration(300)}
             >
               <Pressable
+                onPress={() => router.push({ pathname: '/conversa', params: { id: group.id } })}
                 accessibilityRole="button"
-                accessibilityLabel={`Conversa com ${chat.name}`}
+                accessibilityLabel={`Abrir grupo ${group.name}`}
                 style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
               >
-                <View style={styles.avatarWrap}>
-                  <LinearGradient colors={chat.gradient} style={styles.avatar}>
-                    <Text style={styles.avatarEmoji}>{chat.emoji}</Text>
-                  </LinearGradient>
-                  {chat.online ? <View style={styles.onlineDot} /> : null}
-                </View>
+                <LinearGradient colors={group.gradient} style={styles.avatar}>
+                  <Text style={styles.avatarEmoji}>{group.emoji}</Text>
+                </LinearGradient>
 
                 <View style={styles.rowBody}>
                   <View style={styles.rowTop}>
                     <Text style={styles.rowName} numberOfLines={1}>
-                      {chat.name}
+                      {group.name}
                     </Text>
-                    <Text style={styles.rowTime}>{chat.time}</Text>
+                    <Text style={styles.rowTime}>{group.time}</Text>
                   </View>
+
+                  <Text style={styles.rowMembers}>
+                    {group.members} membros · {group.online} online
+                  </Text>
 
                   <View style={styles.rowBottom}>
                     <Text
-                      style={[styles.rowSnippet, chat.unread > 0 && styles.rowSnippetUnread]}
+                      style={[styles.rowSnippet, group.unread > 0 && styles.rowSnippetUnread]}
                       numberOfLines={1}
                     >
-                      {chat.snippet}
+                      {group.lastAuthor}: {group.lastMessage}
                     </Text>
-                    {chat.unread > 0 ? (
+                    {group.unread > 0 ? (
                       <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{chat.unread}</Text>
+                        <Text style={styles.badgeText}>{group.unread}</Text>
                       </View>
                     ) : null}
                   </View>
@@ -130,15 +137,22 @@ const styles = StyleSheet.create({
     letterSpacing: -0.8,
   },
 
-  newButton: {
-    width: 44,
-    height: 44,
+  groupsPill: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 22,
-    backgroundColor: '#1A1025',
+    gap: 5,
+    backgroundColor: 'rgba(149, 106, 250, 0.14)',
     borderWidth: 1,
-    borderColor: '#3B284A',
+    borderColor: 'rgba(149, 106, 250, 0.4)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+
+  groupsPillText: {
+    color: '#C4A9FF',
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 11,
   },
 
   search: {
@@ -151,7 +165,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     marginTop: spacing.md,
-    marginBottom: spacing.sm,
   },
 
   searchInput: {
@@ -160,6 +173,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: 'Poppins_500Medium',
     fontSize: 14,
+  },
+
+  hint: {
+    color: '#7C6E91',
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 11.5,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
 
   list: {
@@ -182,11 +203,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#1C1230',
   },
 
-  avatarWrap: {
-    width: 50,
-    height: 50,
-  },
-
   avatar: {
     width: 50,
     height: 50,
@@ -199,21 +215,9 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
 
-  onlineDot: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    width: 13,
-    height: 13,
-    borderRadius: 7,
-    backgroundColor: '#55D6A9',
-    borderWidth: 2,
-    borderColor: '#150D21',
-  },
-
   rowBody: {
     flex: 1,
-    gap: 3,
+    gap: 2,
   },
 
   rowTop: {
@@ -233,6 +237,12 @@ const styles = StyleSheet.create({
   rowTime: {
     color: '#7C6E91',
     fontFamily: 'Poppins_400Regular',
+    fontSize: 11,
+  },
+
+  rowMembers: {
+    color: colors.primary,
+    fontFamily: 'Poppins_500Medium',
     fontSize: 11,
   },
 
@@ -273,8 +283,13 @@ const styles = StyleSheet.create({
   empty: {
     alignItems: 'center',
     gap: 6,
-    paddingTop: spacing.xl * 2,
+    paddingTop: spacing.xl,
     paddingHorizontal: spacing.lg,
+    backgroundColor: '#150D21',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2C1C3D',
+    paddingVertical: spacing.lg,
   },
 
   emptyEmoji: {

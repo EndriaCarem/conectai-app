@@ -3,6 +3,8 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,7 +22,11 @@ const PINS = [
 
 export default function MapaScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { width, height } = useWindowDimensions();
+
+  // "Buscar nesta área" (ref 7): recarrega os pins da área visível.
+  const [scanNonce, setScanNonce] = useState(0);
 
   const mapHeight = height * 0.56;
   const mapWidth = width - spacing.lg * 2;
@@ -30,11 +36,12 @@ export default function MapaScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Mapa</Text>
         <Pressable
+          onPress={() => setScanNonce((n) => n + 1)}
           accessibilityRole="button"
-          accessibilityLabel="Centralizar na minha localização"
-          style={styles.locate}
+          accessibilityLabel="Buscar nesta área"
+          style={({ pressed }) => [styles.locate, pressed && styles.pressed]}
         >
-          <Ionicons name="locate" size={20} color={colors.primary} />
+          <Ionicons name="search" size={20} color={colors.primary} />
         </Pressable>
       </View>
 
@@ -67,7 +74,7 @@ export default function MapaScreen() {
 
         {PINS.map((pin, index) => (
           <Animated.View
-            key={pin.id}
+            key={`${pin.id}-${scanNonce}`}
             entering={FadeInUp.delay(120 * index).duration(320)}
             style={[styles.pin, { left: pin.x * mapWidth - 22, top: pin.y * mapHeight - 22 }]}
           >
@@ -108,9 +115,10 @@ export default function MapaScreen() {
           </View>
 
           <Pressable
+            onPress={() => router.push('/descobrir')}
             accessibilityRole="button"
             accessibilityLabel={`Ver ${person.name} no Descobrir`}
-            style={styles.rowAction}
+            style={({ pressed }) => [styles.rowAction, pressed && styles.pressed]}
           >
             <Ionicons name="chevron-forward" size={18} color={colors.primary} />
           </Pressable>
@@ -149,6 +157,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A1025',
     borderWidth: 1,
     borderColor: '#3B284A',
+  },
+
+  pressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.96 }],
   },
 
   map: {

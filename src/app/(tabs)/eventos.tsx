@@ -3,8 +3,9 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeInUp, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '../../components/epic/Chip';
@@ -16,13 +17,22 @@ export default function EventosScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
 
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3200);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   const cardWidth = Math.min(width - spacing.lg * 2, 340);
   const featured = mockEvents[0];
   const rest = mockEvents.slice(1);
 
   return (
+    <View style={styles.screen}>
     <ScrollView
-      style={styles.screen}
+      style={styles.flexFill}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 10 }]}
       showsVerticalScrollIndicator={false}
     >
@@ -111,8 +121,30 @@ export default function EventosScreen() {
         </Animated.View>
       ))}
 
-      <GlowButton label="Criar evento" variant="ghost" style={styles.createButton} />
+      <View style={styles.createRow}>
+        <GlowButton
+          label="Criar evento"
+          variant="ghost"
+          style={styles.createButton}
+          onPress={() =>
+            setToast('A tela de criar evento chega na próxima fatia — até lá, entre nos rolês pelo botão Participar.')
+          }
+        />
+        <Text style={styles.soonTag}>em breve</Text>
+      </View>
     </ScrollView>
+
+    {toast ? (
+      <Animated.View
+        entering={FadeInDown.duration(220)}
+        exiting={FadeOut.duration(200)}
+        style={styles.toast}
+        pointerEvents="none"
+      >
+        <Text style={styles.toastText}>{toast}</Text>
+      </Animated.View>
+    ) : null}
+    </View>
   );
 }
 
@@ -120,6 +152,49 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#0D0617',
+  },
+
+  flexFill: {
+    flex: 1,
+  },
+
+  createRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: spacing.md,
+  },
+
+  soonTag: {
+    color: '#7C6E91',
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 10,
+    backgroundColor: '#241734',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    overflow: 'hidden',
+  },
+
+  toast: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    bottom: spacing.lg,
+    backgroundColor: 'rgba(33, 19, 51, 0.97)',
+    borderWidth: 1,
+    borderColor: 'rgba(149, 106, 250, 0.4)',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+
+  toastText: {
+    color: '#E9E2F2',
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 12,
+    textAlign: 'center',
   },
 
   content: {

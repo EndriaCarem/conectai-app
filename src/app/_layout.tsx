@@ -4,7 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function RootLayout() {
   return (
-    // Obrigatório para os gestos do SwipeDeck (react-native-gesture-handler).
+    // Base para gestos (react-native-gesture-handler): fundo da árvore de views.
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
 

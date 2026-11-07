@@ -9,6 +9,7 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '../../components/epic/Chip';
+import { me } from '../../data/me';
 import { colors, spacing } from '../../theme';
 
 type MenuItem = {
@@ -68,7 +69,9 @@ export default function PerfilScreen() {
           </View>
 
           <Text style={styles.name}>Você</Text>
-          <Text style={styles.meta}>São Paulo · 26 anos</Text>
+          <Text style={styles.meta}>
+            {me.city.split(',')[0]} · {me.age} anos
+          </Text>
 
           <View style={styles.stats}>
             <View style={styles.stat}>
@@ -98,7 +101,7 @@ export default function PerfilScreen() {
 
       <Text style={styles.interestsLabel}>Seus interesses</Text>
       <View style={styles.chipWrap}>
-        {['Café', 'Trilhas', 'Livros', 'Viagens', 'Fotografia', 'Música'].map((interest) => (
+        {me.interests.map((interest) => (
           <Chip key={interest} label={interest} selected={false} onPress={() => {}} />
         ))}
         <Chip label="+ editar" selected onPress={() => {}} />

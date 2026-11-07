@@ -1,4 +1,6 @@
-// Pessoas do deck de descoberta — mock fiel à ref (docs/refs/ref-01-14-telas.jpg, tela 3).
+// Pessoas do Descobrir — mock fiel à ref (docs/refs/ref-01-14-telas.jpg, tela 3).
+// `wantsToday` = intenções do dia (ids de src/data/intents.ts): é o filtro principal
+// do Descobrir por rolês, não a foto.
 // TODO(backend): substituir por consulta a `profiles` + ranking determinístico (backlog §8),
 // fotos vindo do storage e distância real via localização.
 
@@ -11,6 +13,8 @@ export type Person = {
   distanceM: number;
   bio: string;
   interests: string[];
+  /** Intenções marcadas hoje (ids de `intents`). */
+  wantsToday: string[];
   emoji: string;
   gradient: [string, string];
 };
@@ -25,6 +29,7 @@ export const mockProfiles: Person[] = [
     distanceM: 300,
     bio: 'Amo descobrir novos lugares, bons cafés e conversas que vão além do óbvio. ✨',
     interests: ['Café', 'Trilhas', 'Livros', 'Viagens', 'Fotografia', 'Música'],
+    wantsToday: ['cafe', 'trilha', 'conversa'],
     emoji: '☕',
     gradient: ['#6F42D9', '#3B1F73'],
   },
@@ -36,7 +41,8 @@ export const mockProfiles: Person[] = [
     city: 'Vila Madalena, SP',
     distanceM: 800,
     bio: 'Sou pai de uma gata, fã de trilhas, futebol e música. Procuro pessoas com boas conversas para explorar a cidade.',
-    interests: ['Trilhas', 'Cafés', 'Cinema', 'Futebol', 'Música'],
+    interests: ['Trilhas', 'Café', 'Cinema', 'Futebol', 'Música'],
+    wantsToday: ['trilha', 'bar', 'jogo', 'pet'],
     emoji: '⛰️',
     gradient: ['#956AFA', '#5B37B7'],
   },
@@ -49,6 +55,7 @@ export const mockProfiles: Person[] = [
     distanceM: 1200,
     bio: 'Vida noturna, festivais e trilha no fim de semana — depende da vibe do grupo.',
     interests: ['Festival', 'Fotografia', 'Café', 'Balada'],
+    wantsToday: ['show', 'bar', 'cinema'],
     emoji: '🎪',
     gradient: ['#B23FE2', '#6A1FA8'],
   },
@@ -61,6 +68,7 @@ export const mockProfiles: Person[] = [
     distanceM: 2100,
     bio: 'Nerd raiz: RPG de mesa na sexta, café na manhã seguinte. Tô começando a colecionar board games.',
     interests: ['RPG de mesa', 'Games', 'Cafeterias', 'Pizza'],
+    wantsToday: ['jogo', 'cafe', 'cinema'],
     emoji: '🎲',
     gradient: ['#4B5DFF', '#2A33A8'],
   },
@@ -73,6 +81,7 @@ export const mockProfiles: Person[] = [
     distanceM: 3400,
     bio: 'Editora de livros e grande fã de clube de leitura. Trilhas aos domingos são meu ritual.',
     interests: ['Livros', 'Trilhas', 'Arte', 'Cafeterias'],
+    wantsToday: ['cafe', 'museu', 'conversa'],
     emoji: '📚',
     gradient: ['#D946A6', '#7A2168'],
   },
@@ -85,6 +94,7 @@ export const mockProfiles: Person[] = [
     distanceM: 4800,
     bio: 'Músico nas horas vagas, sempre pronto pra um show ou pra um jogo de vôlei na praia.',
     interests: ['Show ao vivo', 'Vôlei', 'Surf', 'Karaokê'],
+    wantsToday: ['show', 'workout', 'cafe'],
     emoji: '🎸',
     gradient: ['#2FB8A6', '#18685F'],
   },

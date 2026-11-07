@@ -1,39 +1,56 @@
-// Descobrir (ref 3) — toggle "Perto de você / Todos", filtros funcionais e deck com swipe.
+// Descobrir por rolês e intenções — ref 3 (toggle "Perto de você / Todos") +
+// "Momentos e Intenções" da ref 11/12: primeiro o que você quer fazer hoje,
+// depois quem está afim da mesma coisa. Sem swipe e sem coração.
 
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Chip } from '../../components/epic/Chip';
 import { GlowButton } from '../../components/epic/GlowButton';
 import { FilterSheet, type DiscoverFilters } from '../../components/descobrir/FilterSheet';
-import { SwipeDeck, type SwipeDirection } from '../../components/descobrir/SwipeDeck';
-import { mockProfiles } from '../../data/profiles';
+import { IntentCard } from '../../components/descobrir/IntentCard';
+import { RolePicker, type RoleOption } from '../../components/descobrir/RolePicker';
+import { mockEvents } from '../../data/events';
+import { mockGroups } from '../../data/groups';
+import { intents } from '../../data/intents';
+import { me } from '../../data/me';
+import { mockProfiles, type Person } from '../../data/profiles';
 import { colors, spacing } from '../../theme';
+
+type PickerState = {
+  mode: 'invite' | 'group';
+  person: Person;
+};
 
 export default function DescobrirScreen() {
   const insets = useSafeAreaInsets();
 
   const [scope, setScope] = useState<'perto' | 'todos'>('perto');
+  const [intentId, setIntentId] = useState(intents[0].id);
   const [filters, setFilters] = useState<DiscoverFilters>({
     maxDistanceKm: null,
     age: 'all',
   });
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [picker, setPicker] = useState<PickerState | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [nonce, setNonce] = useState(0);
 
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 2600);
+    const timer = setTimeout(() => setToast(null), 2800);
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const filtered = useMemo(
+  const intent = intents.find((item) => item.id === intentId) ?? intents[0];
+  const phrase = intent.label.charAt(0).toLowerCase() + intent.label.slice(1);
+
+  const results = useMemo(
     () =>
       mockProfiles.filter((person) => {
+        if (!person.wantsToday.includes(intentId)) return false;
         if (scope === 'perto' && person.distanceM > 3000) return false;
         if (filters.maxDistanceKm !== null && person.distanceM > filters.maxDistanceKm * 1000) {
           return false;
@@ -43,20 +60,41 @@ export default function DescobrirScreen() {
         if (filters.age === '36+' && person.age < 36) return false;
         return true;
       }),
-    [scope, filters],
+    [intentId, scope, filters],
   );
 
   const hasActiveFilters = filters.maxDistanceKm !== null || filters.age !== 'all';
-  const deckKey = `${scope}-${filters.maxDistanceKm}-${filters.age}-${nonce}`;
 
-  function handleDecide(direction: SwipeDirection, person: { name: string }) {
-    if (direction === 'right') {
-      setToast(`Conexão com ${person.name} salva 💜 — ela aparece no Chat quando responder`);
-    } else if (direction === 'up') {
-      setToast(`⭐ ${person.name} salvo nos favoritos`);
-    } else {
-      setToast(null);
-    }
+  // Meus eventos e os grupos deles — fonte única das ações do card.
+  const myEvents = mockEvents.filter((event) => event.mine);
+  const myEventIds = new Set(myEvents.map((event) => event.id));
+  const myGroups = mockGroups.filter((group) => myEventIds.has(group.eventId));
+
+  const pickerOptions: RoleOption[] =
+    picker === null
+      ? []
+      : picker.mode === 'invite'
+        ? myEvents.map((event) => ({
+            id: event.id,
+            emoji: event.emoji,
+            title: event.title,
+            meta: `${event.date.day} ${event.date.month} · ${event.place}`,
+            gradient: event.gradient,
+          }))
+        : myGroups.map((group) => ({
+            id: group.id,
+            emoji: group.emoji,
+            title: group.name,
+            meta: `${group.members} membros · ${group.online} online`,
+            gradient: group.gradient,
+          }));
+
+  function sharedWith(person: Person) {
+    return person.interests.filter((interest) => me.interests.includes(interest));
+  }
+
+  function clearFilters() {
+    setFilters({ maxDistanceKm: null, age: 'all' });
   }
 
   return (
@@ -88,38 +126,90 @@ export default function DescobrirScreen() {
         <Chip label="Todos" selected={scope === 'todos'} onPress={() => setScope('todos')} />
       </View>
 
-      <View style={styles.deckArea}>
-        <SwipeDeck
-          key={deckKey}
-          profiles={filtered}
-          onDecide={handleDecide}
-          empty={
-            <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>✨</Text>
-              <Text style={styles.emptyTitle}>Você viu todo mundo por aqui</Text>
-              <Text style={styles.emptyText}>
-                Amplie os filtros ou volte mais tarde — pessoas novas chegam toda hora.
-              </Text>
+      <Text style={styles.sectionLabel}>O que você quer fazer hoje?</Text>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.intentRow}
+        style={styles.intentScroll}
+      >
+        {intents.map((item) => (
+          <Chip
+            key={item.id}
+            label={`${item.emoji} ${item.label}`}
+            selected={item.id === intentId}
+            onPress={() => setIntentId(item.id)}
+          />
+        ))}
+      </ScrollView>
+
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.list}
+      >
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsTitle}>Gente afim de {phrase}</Text>
+          <View style={styles.countPill}>
+            <Text style={styles.countText}>
+              {results.length} {results.length === 1 ? 'pessoa' : 'pessoas'}
+            </Text>
+          </View>
+        </View>
+
+        {results.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyEmoji}>🗓️</Text>
+            <Text style={styles.emptyTitle}>Ninguém afim de {phrase} por aqui</Text>
+            <Text style={styles.emptyText}>
+              Escolha outro rolê acima ou amplie os filtros — combos novos aparecem o tempo todo.
+            </Text>
+            {hasActiveFilters ? (
               <GlowButton
-                label="Recarregar descoberta"
-                onPress={() => setNonce((n) => n + 1)}
+                label="Limpar filtros"
+                variant="ghost"
+                onPress={clearFilters}
                 style={styles.emptyButton}
               />
-            </View>
-          }
-        />
+            ) : null}
+          </View>
+        ) : (
+          results.map((person, index) => (
+            <Animated.View
+              key={person.id}
+              entering={FadeInDown.delay(70 * index).duration(300)}
+              exiting={FadeOut.duration(180)}
+            >
+              <IntentCard
+                person={person}
+                phrase={phrase}
+                shared={sharedWith(person)}
+                onInvite={() => setPicker({ mode: 'invite', person })}
+                onAddGroup={() => setPicker({ mode: 'group', person })}
+              />
+            </Animated.View>
+          ))
+        )}
+      </ScrollView>
 
-        {toast ? (
-          <Animated.View
-            key={toast}
-            entering={FadeInDown.duration(220)}
-            exiting={FadeOut.duration(200)}
-            style={styles.toast}
-          >
-            <Text style={styles.toastText}>{toast}</Text>
-          </Animated.View>
-        ) : null}
-      </View>
+      <RolePicker
+        visible={picker !== null}
+        mode={picker?.mode ?? 'invite'}
+        personName={picker?.person.name ?? ''}
+        options={pickerOptions}
+        onSelect={(option) => {
+          if (!picker) return;
+          if (picker.mode === 'invite') {
+            setToast(
+              `🎉 Convite enviado para ${picker.person.name} — o grupo ${option.title} nasce quando ela confirmar`,
+            );
+          } else {
+            setToast(`👥 ${picker.person.name} foi adicionada ao grupo ${option.title}`);
+          }
+          setPicker(null);
+        }}
+        onClose={() => setPicker(null)}
+      />
 
       <FilterSheet
         visible={sheetOpen}
@@ -127,10 +217,20 @@ export default function DescobrirScreen() {
         onApply={(next) => {
           setFilters(next);
           setSheetOpen(false);
-          setNonce((n) => n + 1);
         }}
         onClose={() => setSheetOpen(false)}
       />
+
+      {toast ? (
+        <Animated.View
+          key={toast}
+          entering={FadeInDown.duration(220)}
+          exiting={FadeOut.duration(200)}
+          style={[styles.toast, { pointerEvents: 'none' }]}
+        >
+          <Text style={styles.toastText}>{toast}</Text>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
@@ -183,26 +283,78 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 
-  deckArea: {
-    flex: 1,
+  sectionLabel: {
+    color: '#DCD4E4',
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 14,
+    letterSpacing: 0.2,
+    marginBottom: spacing.sm,
   },
 
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  intentScroll: {
+    marginHorizontal: -spacing.lg,
+    marginBottom: spacing.md,
+  },
+
+  intentRow: {
     gap: 8,
     paddingHorizontal: spacing.lg,
   },
 
+  list: {
+    paddingBottom: spacing.xl,
+  },
+
+  resultsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: spacing.sm,
+  },
+
+  resultsTitle: {
+    flex: 1,
+    color: '#FFFFFF',
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 15,
+  },
+
+  countPill: {
+    backgroundColor: '#1F1331',
+    borderWidth: 1,
+    borderColor: '#3B284A',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+
+  countText: {
+    color: '#A495B8',
+    fontFamily: 'Poppins_500Medium',
+    fontSize: 11,
+  },
+
+  empty: {
+    alignItems: 'center',
+    gap: 8,
+    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: '#150D21',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2C1C3D',
+    paddingVertical: spacing.lg,
+  },
+
   emptyEmoji: {
-    fontSize: 34,
+    fontSize: 32,
   },
 
   emptyTitle: {
     color: '#FFFFFF',
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 17,
+    fontSize: 16,
     textAlign: 'center',
   },
 
@@ -215,16 +367,15 @@ const styles = StyleSheet.create({
   },
 
   emptyButton: {
-    marginTop: spacing.md,
-    alignSelf: 'center',
-    paddingHorizontal: spacing.xl,
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.lg,
   },
 
   toast: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 4,
+    left: spacing.lg,
+    right: spacing.lg,
+    bottom: spacing.md,
     backgroundColor: 'rgba(33, 19, 51, 0.97)',
     borderWidth: 1,
     borderColor: 'rgba(149, 106, 250, 0.4)',
