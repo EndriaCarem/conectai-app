@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { Person } from '../../data/profiles';
+import type { Person } from '../../db/queries';
 import { colors, spacing } from '../../theme';
 
 type IntentCardProps = {

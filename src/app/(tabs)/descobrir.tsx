@@ -3,7 +3,8 @@
 // depois quem está afim da mesma coisa. Sem swipe e sem coração.
 
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +18,7 @@ import { mockEvents } from '../../data/events';
 import { mockGroups } from '../../data/groups';
 import { intents } from '../../data/intents';
 import { me } from '../../data/me';
-import { mockProfiles, type Person } from '../../data/profiles';
+import { listUsers, type Person } from '../../db/queries';
 import { colors, spacing } from '../../theme';
 
 type PickerState = {
@@ -27,7 +28,9 @@ type PickerState = {
 
 export default function DescobrirScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
+  const [people, setPeople] = useState<Person[]>([]);
   const [scope, setScope] = useState<'perto' | 'todos'>('perto');
   const [intentId, setIntentId] = useState(intents[0].id);
   const [filters, setFilters] = useState<DiscoverFilters>({
@@ -44,12 +47,27 @@ export default function DescobrirScreen() {
     return () => clearTimeout(timer);
   }, [toast]);
 
+  // Recarrega ao voltar para a aba (usuários criados no Perfil aparecem aqui).
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      listUsers()
+        .then((rows) => {
+          if (active) setPeople(rows);
+        })
+        .catch(() => {});
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
   const intent = intents.find((item) => item.id === intentId) ?? intents[0];
   const phrase = intent.label.charAt(0).toLowerCase() + intent.label.slice(1);
 
   const results = useMemo(
     () =>
-      mockProfiles.filter((person) => {
+      people.filter((person) => {
         if (!person.wantsToday.includes(intentId)) return false;
         if (scope === 'perto' && person.distanceM > 3000) return false;
         if (filters.maxDistanceKm !== null && person.distanceM > filters.maxDistanceKm * 1000) {
@@ -60,7 +78,7 @@ export default function DescobrirScreen() {
         if (filters.age === '36+' && person.age < 36) return false;
         return true;
       }),
-    [intentId, scope, filters],
+    [intentId, scope, filters, people],
   );
 
   const hasActiveFilters = filters.maxDistanceKm !== null || filters.age !== 'all';
@@ -159,19 +177,37 @@ export default function DescobrirScreen() {
 
         {results.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyEmoji}>🗓️</Text>
-            <Text style={styles.emptyTitle}>Ninguém afim de {phrase} por aqui</Text>
-            <Text style={styles.emptyText}>
-              Escolha outro rolê acima ou amplie os filtros — combos novos aparecem o tempo todo.
-            </Text>
-            {hasActiveFilters ? (
-              <GlowButton
-                label="Limpar filtros"
-                variant="ghost"
-                onPress={clearFilters}
-                style={styles.emptyButton}
-              />
-            ) : null}
+            <Text style={styles.emptyEmoji}>{people.length === 0 ? '👥' : '🗓️'}</Text>
+            {people.length === 0 ? (
+              <>
+                <Text style={styles.emptyTitle}>Nenhum usuário de teste ainda</Text>
+                <Text style={styles.emptyText}>
+                  Crie pessoas no Modo teste do Perfil e elas aparecem aqui para você
+                  descobrir por rolês e intenções.
+                </Text>
+                <GlowButton
+                  label="Criar usuário de teste"
+                  onPress={() => router.push('/perfil')}
+                  style={styles.emptyButton}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.emptyTitle}>Ninguém afim de {phrase} por aqui</Text>
+                <Text style={styles.emptyText}>
+                  Escolha outro rolê acima ou amplie os filtros — combos novos aparecem o
+                  tempo todo.
+                </Text>
+                {hasActiveFilters ? (
+                  <GlowButton
+                    label="Limpar filtros"
+                    variant="ghost"
+                    onPress={clearFilters}
+                    style={styles.emptyButton}
+                  />
+                ) : null}
+              </>
+            )}
           </View>
         ) : (
           results.map((person, index) => (
